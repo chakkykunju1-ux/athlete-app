@@ -77,11 +77,24 @@ with tab_train:
     plan = {
         "Day": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
         "Focus": ["Push (Power)", "Pull (Strength)", "Legs (Mass)", "Recovery/Yoga", "Upper (Volume)", "HIIT/Explosive", "Full Rest"],
+        with tab_train:
+    st.subheader(f"7-Day {mode} Protocol")
+    
+    # Map the sidebar selection to the correct column names
+    col_name = "Gym Exercises" if "Gym" in mode else "Home Exercises"
+    
+    plan = {
+        "Day": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "Focus": ["Push (Power)", "Pull (Strength)", "Legs (Mass)", "Recovery/Yoga", "Upper (Volume)", "HIIT/Explosive", "Full Rest"],
         "Gym Exercises": ["Bench 4x8, Military Press", "Deadlifts 3x5, Rows", "Squats 4x10, Leg Press", "Mobility Drills", "Incline DB, Pullups", "Sprints, Kettlebell", "Sleep & Eat"],
         "Home Exercises": ["Diamond Pushups, Pike Push", "Inverted Rows, Pullups", "Split Squats, Glute Bridge", "Yoga", "Regular Pushups, Dips", "Burpees, Mountain Climbers", "Sleep & Eat"]
     }
     df_plan = pd.DataFrame(plan)
-    st.table(df_plan[['Day', 'Focus', f'{mode} Exercises']])
+    
+    # Use the mapped col_name here
+    st.table(df_plan[['Day', 'Focus', col_name]])
+    
+    st.warning("⚡ Athlete Tip: Progressive Overload is key. Try to add 1 extra rep or 1kg every week.")
     
     
 
