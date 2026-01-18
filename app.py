@@ -4,163 +4,127 @@ import numpy as np
 from datetime import datetime, date, time
 
 # --- APP CONFIG ---
-st.set_page_config(page_title="APEX PRO: ELITE COMMAND", page_icon="🔱", layout="wide")
+st.set_page_config(page_title="APEX ALPHA: PRO PROTOCOL", page_icon="🔱", layout="wide")
 
-# --- CUSTOM CSS FOR PREMIUM DARK AESTHETIC ---
+# --- CUSTOM CSS ---
 st.markdown("""
     <style>
     .stApp { background: #050505; color: #ffffff; }
-    .metric-card { background: #111; padding: 20px; border-radius: 15px; border: 1px solid #00ffcc; text-align: center; }
-    .exercise-card { background: #1a1a1a; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 5px solid #00ffcc; }
-    .circadian-box { background: #111; padding: 15px; border-radius: 10px; border-left: 5px solid #ffaa00; margin-bottom: 10px; }
-    .time-label { color: #ffaa00; font-weight: bold; font-family: 'Courier New'; }
-    .supp-card { background: #0d1b2a; padding: 15px; border-radius: 10px; border: 1px solid #1b263b; margin-bottom: 10px; }
-    .sci-header { color: #00ffcc; font-family: 'Monospace'; font-weight: bold; text-transform: uppercase; }
+    .circadian-card { background: #111; padding: 15px; border-radius: 10px; border-left: 5px solid #ffaa00; margin-bottom: 10px; }
+    .meal-card { background: #1a1a1a; padding: 15px; border-radius: 10px; border: 1px solid #333; margin-bottom: 10px; }
+    .time-stamp { color: #ffaa00; font-weight: bold; font-family: 'Courier New'; }
+    .exercise-box { background: #000; padding: 15px; border: 1px solid #00ffcc; border-radius: 10px; margin-top: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- ADVANCED MATH ENGINE ---
-def calculate_pro_metrics(w, h, a, g, act, goal_wt, target_date):
+# --- CALCULATIONS ---
+def get_alpha_metrics(w, h, a, g, act, goal_wt, deadline):
     bmr = (10*w) + (6.25*h) - (5*a) + (5 if g=="Male" else -161)
     tdee = bmr * act
+    days_rem = max((deadline - date.today()).days, 1)
+    target_cal = tdee - ((w - goal_wt) * 7700 / days_rem)
     
-    # Deadline Math
-    days_remaining = (target_date - date.today()).days
-    weeks_remaining = max(days_remaining / 7, 1)
-    total_kg_to_lose = w - goal_wt
-    
-    # 7700 cals = 1kg fat
-    daily_deficit = (total_kg_to_lose * 7700) / max(days_remaining, 1)
-    target_cal = tdee - daily_deficit
-    
-    # Pro Athlete Macros: High Protein (2.5g/kg) for muscle sparing
-    prot = w * 2.5 
-    fats = (target_cal * 0.20) / 9
+    # Precise Gram-Scale Macro Calculation
+    prot = w * 2.6 # High protein for muscle sparing
+    fats = w * 0.8 # Essential fats for hormones
     carbs = (target_cal - (prot*4) - (fats*9)) / 4
-    
-    return round(target_cal), round(prot), round(carbs), round(fats), round(weeks_remaining), round(total_kg_to_lose/weeks_remaining, 2), round(bmr)
+    return round(target_cal), round(prot), round(carbs), round(fats), bmr
 
-# --- SIDEBAR: COACHING COMMAND ---
+# --- SIDEBAR ---
 with st.sidebar:
-    st.title("🎖️ STRATEGY HUB")
-    name = st.text_input("Athlete Name", "CHAMP")
-    
-    st.markdown("### 📅 MISSION TIMELINE")
-    curr_w = st.number_input("Current Weight (kg)", 40.0, 160.0, 85.0)
-    goal_w = st.number_input("Goal Weight (kg)", 40.0, 160.0, 75.0)
-    deadline = st.date_input("Deadline Date", date(2026, 6, 1))
-    
-    st.markdown("### 🧬 BIOMETRICS")
-    h = st.number_input("Height (cm)", 140, 220, 180)
-    a = st.number_input("Age", 18, 65, 25)
+    st.header("🔱 ATHLETE BIO-DATA")
+    curr_w = st.number_input("Weight (kg)", 40.0, 150.0, 85.0)
+    goal_w = st.number_input("Goal Weight (kg)", 40.0, 150.0, 75.0)
+    deadline = st.date_input("Deadline Date", date(2026, 4, 1))
+    wake_time = st.time_input("Wake Time", time(5, 0))
+    h = st.number_input("Height (cm)", 140, 210, 180)
+    a = st.number_input("Age", 18, 60, 25)
     g = st.radio("Gender", ["Male", "Female"])
-    intensity = st.select_slider("Activity Level", options=[1.2, 1.375, 1.55, 1.725, 1.9], value=1.725)
+    intensity = st.select_slider("Load", options=[1.2, 1.375, 1.55, 1.725, 1.9], value=1.725)
+
+cal, p, c, f, bmr = get_alpha_metrics(curr_w, h, a, g, intensity, goal_w, deadline)
+
+# --- DASHBOARD ---
+st.title("🔱 APEX ALPHA COMMAND CENTER")
+st.markdown(f"**PROTOCOL:** {round((curr_w-goal_w)/((deadline-date.today()).days/7), 2)}kg/week Loss")
+
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("FUEL (KCAL)", f"{cal}")
+m2.metric("PROTEIN (G)", f"{p}")
+m3.metric("CARBS (G)", f"{c}")
+m4.metric("FATS (G)", f"{f}")
+
+t1, t2, t3, t4 = st.tabs(["🕒 CIRCADIAN SCHEDULE", "🏋️ 7-DAY BATTLE PLAN", "🍱 NUTRITION SCALE", "🔋 ELITE RECOVERY"])
+
+with t1:
+    st.subheader("Hourly Biological Optimization")
+    def hr(t, h): return (datetime.combine(date.today(), t) + pd.Timedelta(hours=h)).time().strftime('%H:%M')
     
-    st.divider()
-    wake_time = st.time_input("Typical Wake Up Time", time(6, 0))
-
-# Run Calculations
-cal, p, c, f, wks, rate, bmr_val = calculate_pro_metrics(curr_w, h, a, g, intensity, goal_w, deadline)
-
-# --- MAIN DASHBOARD ---
-st.title(f"🚀 MISSION: {goal_w}KG BY {deadline}")
-st.write(f"Athlete: **{name.upper()}** | Window: **{wks} Weeks** | Required Rate: **{rate} kg/week**")
-
-# TARGET GRID
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("DAILY KCAL", f"{cal}")
-c2.metric("PROTEIN (g)", f"{p}")
-c3.metric("CARBS (g)", f"{c}")
-c4.metric("FATS (g)", f"{f}")
-
-st.divider()
-
-# --- PROFESSIONAL TABS ---
-t_circadian, t_train, t_diet, t_supp, t_recov = st.tabs([
-    "🕒 CIRCADIAN TIMING", "🏋️ VISUAL TRAINING", "🍱 NUTRITION", "💊 SUPPLEMENTS", "🔋 RECOVERY"
-])
-
-with t_circadian:
-    st.subheader("Biological Clock Optimization")
-    st.info("Aligning nutrition and intensity with hormonal peaks.")
+    st.markdown(f"""
+    <div class='circadian-card'><span class='time-stamp'>{hr(wake_time, 0)}</span>: <b>Hydration & Light:</b> 500ml Water + Pink Salt. 10 mins sunlight for circadian Reset.</div>
+    <div class='circadian-card'><span class='time-stamp'>{hr(wake_time, 1.5)}</span>: <b>First Macro Load:</b> High protein + high fat. First Caffeine dose.</div>
+    <div class='circadian-card' style='border-left-color: #00ffcc;'><span class='time-stamp'>{hr(wake_time, 10)}</span>: <b>PEAK PERFORMANCE:</b> Body temp max. Train Now (60 min High Intensity).</div>
+    <div class='circadian-card' style='border-left-color: #ff4b4b;'><span class='time-stamp'>{hr(wake_time, 14)}</span>: <b>Blue Light Block:</b> Melatonin prep. No screens or calories.</div>
+    """, unsafe_allow_html=True)
     
-    def add_hrs(t, hrs): return (datetime.combine(date.today(), t) + pd.Timedelta(hours=hrs)).time()
 
-    col1, col2 = st.columns(2)
-    with col1:
+with t2:
+    st.subheader("6-Day High-Volume Split (1 Hour)")
+    day = st.selectbox("Select Training Day", ["Day 1: Chest & Shoulders (Push)", "Day 2: Back & Rear Delts (Pull)", "Day 3: Quads & Calves", "Day 4: Arms & Forearms", "Day 5: Hamstrings & Lower Back", "Day 6: Full Body Explosive", "Day 7: Active Recovery"])
+    
+    st.markdown("#### 1. WARM-UP (10 MIN)")
+    st.write("Dynamic Stretching: Arm Circles, Leg Swings, Cat-Cow, Band Pull-aparts.")
+    
+    st.markdown("#### 2. MAIN WORKOUT (40 MIN)")
+    if "Day 1" in day:
+        st.write("Bench Press 4x8 | Incline DB Press 3x12 | Military Press 3x10 | Lateral Raises 4x15 | Dips 3xAMRAP")
+        st.image("https://www.strengthlog.com/wp-content/uploads/2020/03/bench-press.gif", width=400)
+    elif "Day 2" in day:
+        st.write("Deadlifts 3x5 | Weighted Pull-ups 4x8 | Barbell Rows 4x10 | Face Pulls 4x20 | DB Curls 3x12")
+        st.image("https://www.strengthlog.com/wp-content/uploads/2020/03/Deadlift.gif", width=400)
+    elif "Day 3" in day:
+        st.write("Back Squat 4x8 | Leg Press 3x15 | Leg Extensions 4x20 | Standing Calf Raises 5x15")
+        st.image("https://www.strengthlog.com/wp-content/uploads/2020/03/Squat.gif", width=400)
+    
+    st.markdown("#### 3. COOL-DOWN (10 MIN)")
+    st.write("Static Stretching: Focus on worked muscles. 5 mins Box Breathing (4s In, 4s Hold, 4s Out, 4s Hold).")
+    
+
+with t3:
+    st.subheader("Gram-Specific Nutrition Scale")
+    st.write(f"Based on your 2.6g Protein/kg target. Use a digital kitchen scale for these measurements.")
+    c1, c2 = st.columns(2)
+    with c1:
         st.markdown(f"""
-        <div class='circadian-box'>
-            <span class='time-label'>{wake_time.strftime('%H:%M')} - {add_hrs(wake_time, 1).strftime('%H:%M')}</span><br>
-            <b>CORTISOL SPIKE:</b> View sunlight. Hydrate + Pink Salt. No caffeine for 90m.
+        <div class='meal-card'>
+            <b>Breakfast:</b> 200g Egg Whites + 2 Whole Eggs + 60g Oats (Dry weight)
         </div>
-        <div class='circadian-box' style='border-left-color: #00ffcc;'>
-            <span class='time-label'>{add_hrs(wake_time, 9).strftime('%H:%M')}</span><br>
-            <b>STRENGTH PEAK:</b> Body temp is highest. Grip strength and coordination peak. <b>TRAIN NOW.</b>
+        <div class='meal-card'>
+            <b>Lunch:</b> 200g Chicken Breast (Raw weight) + 150g Cooked Basmati + 100g Broccoli
+        </div>
+        """, unsafe_allow_html=True)
+    with c2:
+        st.markdown(f"""
+        <div class='meal-card'>
+            <b>Pre-Workout:</b> 1 Apple + 1 Scoop Whey in Water
+        </div>
+        <div class='meal-card'>
+            <b>Dinner:</b> 200g White Fish + 150g Sweet Potato + Large Salad
         </div>
         """, unsafe_allow_html=True)
     
-    with col2:
-        st.markdown(f"""
-        <div class='circadian-box' style='border-left-color: #0575E6;'>
-            <span class='time-label'>{add_hrs(wake_time, 12).strftime('%H:%M')}</span><br>
-            <b>GLYCOGEN REPLENISHMENT:</b> High-carb post-workout meal.
-        </div>
-        <div class='circadian-box' style='border-left-color: #ff4b4b;'>
-            <span class='time-label'>{add_hrs(wake_time, 14).strftime('%H:%M')}</span><br>
-            <b>MELATONIN WINDOW:</b> Blue light blockers on. Deep sleep prep for GH release.
-        </div>
-        """, unsafe_allow_html=True)
-    
-    
 
-with t_train:
-    st.subheader("Visual Movement Vault")
-    day = st.selectbox("Select Training Day", ["Day 1: Heavy Push", "Day 2: Power Pull", "Day 3: Elite Legs"])
-    
-    if "Push" in day:
-        st.markdown("<div class='exercise-card'><span class='sci-header'>Exercise 1: Barbell Bench Press</span><br>4 Sets x 6-8 Reps</div>", unsafe_allow_html=True)
-        st.image("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHYxcXp5YmF5Znd5bmx4bmZ5bmZ5bmZ5bmZ5bmZ5bmZ5bmZ5JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKu5In2e07Wrg9W/giphy.gif")
-        
-        
-        st.markdown("<div class='exercise-card'><span class='sci-header'>Exercise 2: Overhead Press</span><br>3 Sets x 10 Reps</div>", unsafe_allow_html=True)
-        st.image("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHYxcXp5YmF5Znd5bmx4bmZ5bmZ5bmZ5bmZ5bmZ5bmZ5bmZ5JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l0HlSrf8X6Z3oJm6s/giphy.gif")
-    
-    elif "Legs" in day:
-        st.markdown("<div class='exercise-card'><span class='sci-header'>Exercise 1: Barbell Back Squat</span><br>4 Sets x 6 Reps</div>", unsafe_allow_html=True)
-        st.image("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHYxcXp5YmF5Znd5bmx4bmZ5bmZ5bmZ5bmZ5bmZ5bmZ5bmZ5JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKu5In2e07Wrg9W/giphy.gif")
-        
-
-with t_diet:
-    st.subheader("Elite Indian Performance Diet")
-    st.info(f"Targeting {rate}kg/week. Focus on High TEF (Thermal Effect of Food).")
-    col_d1, col_d2 = st.columns(2)
-    with col_d1:
-        st.error("🥩 NON-VEG ELITE")
-        st.write("- **Breakfast:** 6 Egg Whites + 1 Whole Egg + Oats")
-        st.write("- **Lunch:** 200g Chicken + 1 cup Rice + Dal + Salad")
-        st.write("- **Dinner:** 200g Fish + Stir-fry Veggies + Lemon Water")
-    with col_d2:
-        st.success("🥦 VEG ELITE")
-        st.write("- **Breakfast:** 150g Paneer + 2 Jowar Rotis + Curd")
-        st.write("- **Lunch:** 100g Soya Chunks + Dal + Brown Rice")
-        st.write("- **Dinner:** Moong Dal Chilla + Tofu Stir-fry + Sprouts")
-    
-
-with t_supp:
-    st.subheader("Bio-Availability Timing")
-    st.table(pd.DataFrame({
-        "Supplement": ["Creatine", "Caffeine", "Whey Protein", "Magnesium/ZMA", "Vitamin D3"],
-        "Best Time": ["Post-Workout (with carbs)", "30 min Pre-Workout", "Post-Workout", "Before Bed", "With Breakfast"],
-        "Pro Benefit": ["ATP Recovery", "CNS Drive", "Muscle Repair", "Recovery", "Hormones"]
-    }))
-
-with t_recov:
-    st.subheader("Bio-Feedback Tracker")
-    hrv = st.slider("Heart Rate Variability (HRV)", 20, 100, 70)
-    sleep_hrs = st.slider("Sleep Duration", 4, 12, 8)
-    if sleep_hrs < 7:
-        st.warning("⚠️ High CNS Fatigue Risk. Consider a deload session.")
+with t4:
+    st.subheader("Elite Recovery Protocol")
+    r1, r2 = st.columns(2)
+    with r1:
+        st.write("**Daily Supplement Stack:**")
+        st.info("Creatine 5g | Citrulline 8g | Omega-3 3000mg | Magnesium Bisglycinate 400mg")
+    with r2:
+        st.write("**Recovery Tactics:**")
+        st.error("Cold Plunge (11°C): 3 mins (Reduces Inflammation)")
+        st.success("Sauna (80°C): 20 mins (Heat Shock Proteins)")
     
 
 st.divider()
-st.caption("APEX PRO V5.0 | 2026 WORLD CLASS PERFORMANCE | CIRCADIAN & DEADLINE ENGINE")
+st.caption("APEX ALPHA V6.0 | GLOBAL ATHLETE STANDARDS")
